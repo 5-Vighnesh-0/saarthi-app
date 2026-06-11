@@ -42,7 +42,7 @@ function GlassCard({ children, style, glow }: { children: React.ReactNode; style
 
 export default function DesktopApp() {
   const [query, setQuery] = useState("");
-  const [focused, setFocused] = useState(false);
+  const [focused, setFocused] = useState<"from" | "to" | null>(null);
   const [results, setResults] = useState<GeoResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [selIdx, setSelIdx] = useState(0);
@@ -50,11 +50,18 @@ export default function DesktopApp() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [walkInfo, setWalkInfo] = useState<string | null>(null);
   const [selectedDest, setSelectedDest] = useState<GeoResult | null>(null);
+  const [fromQuery, setFromQuery] = useState("");
+  const [fromResults, setFromResults] = useState<GeoResult[]>([]);
+  const [fromSearching, setFromSearching] = useState(false);
+  const [selectedOrigin, setSelectedOrigin] = useState<GeoResult | null>(null);
+  const fromDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showScheduled, setShowScheduled] = useState(false);
   const [view, setView] = useState<View>("buses");
   const [autoStep, setAutoStep] = useState<"pick" | "otp" | "tracking">("pick");
   const [otpValue, setOtpValue] = useState("");
   const [ticketRoute, setTicketRoute] = useState("500D");
+  const [usingDefaultLocation, setUsingDefaultLocation] = useState(false);
+  const [mapFlyTarget, setMapFlyTarget] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { vehicles, connected } = useVehicleSocket();
@@ -70,15 +77,33 @@ export default function DesktopApp() {
 
   const buses = liveBuses.length > 0 ? liveBuses : BUS_POSITIONS;
 
-  // Get user location on mount
+  // Get user location — validate it's actually in Bengaluru, else default to city center
   useEffect(() => {
-    navigator.geolocation?.getCurrentPosition(
-      (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {} // silently fail if denied
+    const BENGALURU_CENTER = { lat: 12.9716, lng: 77.5946 };
+    const inBengaluru = (lat: number, lng: number) =>
+      lat > 12.7 && lat < 13.3 && lng > 77.3 && lng < 77.9;
+
+    const useDefault = () => {
+      setUserLocation(BENGALURU_CENTER);
+      setUsingDefaultLocation(true);
+    };
+
+    if (!navigator.geolocation) { useDefault(); return; }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        if (inBengaluru(coords.latitude, coords.longitude)) {
+          setUserLocation({ lat: coords.latitude, lng: coords.longitude });
+        } else {
+          useDefault(); // outside Bengaluru (VPN / IP geolocation)
+        }
+      },
+      useDefault,
+      { timeout: 6000, maximumAge: 60000 },
     );
   }, []);
 
-  // Debounced Nominatim search
+  // Debounced TO search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!query.trim()) { setResults([]); return; }
@@ -91,24 +116,60 @@ export default function DesktopApp() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query]);
 
+  // Debounced FROM search
+  useEffect(() => {
+    if (fromDebounceRef.current) clearTimeout(fromDebounceRef.current);
+    if (!fromQuery.trim()) { setFromResults([]); return; }
+    fromDebounceRef.current = setTimeout(async () => {
+      setFromSearching(true);
+      const r = await searchBengaluru(fromQuery);
+      setFromResults(r);
+      setFromSearching(false);
+    }, 350);
+    return () => { if (fromDebounceRef.current) clearTimeout(fromDebounceRef.current); };
+  }, [fromQuery]);
+
+  const handleSelectOrigin = useCallback((r: GeoResult) => {
+    setSelectedOrigin(r);
+    setFromQuery(r.name);
+    setFocused(null);
+    setFromResults([]);
+  }, []);
+
   const handleSelectDest = useCallback(async (r: GeoResult) => {
     setSelectedDest(r);
     setQuery(r.name);
-    setFocused(false);
+    setFocused(null);
     setResults([]);
-    // Fetch walk route from user location to chosen destination
-    if (userLocation) {
-      const route = await getWalkRoute(userLocation.lat, userLocation.lng, r.lat, r.lng);
-      if (route) {
+    setWalkRoute(null);
+    setWalkInfo(null);
+
+    const from = selectedOrigin
+      ? { lat: selectedOrigin.lat, lng: selectedOrigin.lng }
+      : userLocation;
+
+    if (from) {
+      const route = await getWalkRoute(from.lat, from.lng, r.lat, r.lng);
+      if (route && route.distanceM < 10000) {
         setWalkRoute(route);
         setWalkInfo(fmtWalk(route.durationSec, route.distanceM));
+      } else if (route) {
+        setWalkInfo("Too far to walk · take transit");
       }
     }
-  }, [userLocation]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation, selectedOrigin]);
 
   const clearDest = () => {
     setSelectedDest(null);
     setQuery("");
+    setWalkRoute(null);
+    setWalkInfo(null);
+  };
+
+  const clearOrigin = () => {
+    setSelectedOrigin(null);
+    setFromQuery("");
     setWalkRoute(null);
     setWalkInfo(null);
   };
@@ -131,6 +192,7 @@ export default function DesktopApp() {
           walkRoute={walkRoute}
           userLocation={userLocation}
           scheduledBuses={showScheduled ? SCHEDULED_BUSES : []}
+          flyTarget={mapFlyTarget}
         />
       </div>
 
@@ -169,44 +231,67 @@ export default function DesktopApp() {
           </GlassCard>
         </motion.div>
 
-        {/* Search */}
+        {/* From / To search */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          style={{ flex: 1, maxWidth: 560, position: "relative" }}
+          style={{ flex: 1, maxWidth: 580, position: "relative" }}
         >
           <div style={{
-            display: "flex", alignItems: "center", gap: 10,
-            background: "rgba(10,13,20,0.92)",
-            border: `1px solid ${focused ? "rgba(249,115,22,0.5)" : "rgba(255,255,255,0.1)"}`,
-            borderRadius: 16, padding: "12px 16px",
-            backdropFilter: "blur(24px)",
-            boxShadow: focused
-              ? "0 0 0 3px rgba(249,115,22,0.15), 0 8px 32px rgba(0,0,0,0.5)"
-              : "0 8px 32px rgba(0,0,0,0.4)",
-            transition: "all 0.2s ease",
+            background: "rgba(10,13,20,0.92)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 18, overflow: "visible",
+            backdropFilter: "blur(24px)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
           }}>
-            {searching
-              ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} style={{ width: 17, height: 17, border: "2px solid #f97316", borderTopColor: "transparent", borderRadius: "50%", flexShrink: 0 }} />
-              : <Search size={17} color={focused ? "#f97316" : "rgba(255,255,255,0.4)"} style={{ flexShrink: 0, transition: "color 0.2s" }} />
-            }
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setTimeout(() => setFocused(false), 200)}
-              placeholder="Search any place, stop or street in Bengaluru…"
-              style={{
-                flex: 1, background: "transparent", border: "none", outline: "none",
-                color: "#fff", fontSize: 14, fontWeight: 500, fontFamily: "inherit",
-              }}
-            />
-            {(query || selectedDest) && (
-              <button onClick={clearDest} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", borderRadius: 6 }}>
-                <X size={15} color="rgba(255,255,255,0.4)" />
-              </button>
-            )}
+            {/* FROM row */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+              borderBottom: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: "18px 18px 0 0",
+              background: focused === "from" ? "rgba(249,115,22,0.06)" : "transparent",
+              transition: "background 0.2s",
+            }}>
+              <Navigation size={14} color={usingDefaultLocation && !selectedOrigin ? "rgba(255,255,255,0.35)" : "#f97316"} style={{ flexShrink: 0 }} />
+              <input
+                value={fromQuery}
+                onChange={(e) => setFromQuery(e.target.value)}
+                onFocus={() => setFocused("from")}
+                onBlur={() => setTimeout(() => setFocused(null), 200)}
+                placeholder={usingDefaultLocation ? "Bengaluru centre (tap to set origin)" : "Your location"}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: 13, fontFamily: "inherit" }}
+              />
+              {(fromQuery || selectedOrigin) && (
+                <button onClick={clearOrigin} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex" }}>
+                  <X size={13} color="rgba(255,255,255,0.4)" />
+                </button>
+              )}
+            </div>
+
+            {/* TO row */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+              borderRadius: "0 0 18px 18px",
+              background: focused === "to" ? "rgba(249,115,22,0.06)" : "transparent",
+              transition: "background 0.2s",
+            }}>
+              {searching
+                ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} style={{ width: 14, height: 14, border: "2px solid #f97316", borderTopColor: "transparent", borderRadius: "50%", flexShrink: 0 }} />
+                : <Search size={14} color={focused === "to" ? "#f97316" : "rgba(255,255,255,0.4)"} style={{ flexShrink: 0 }} />
+              }
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setFocused("to")}
+                onBlur={() => setTimeout(() => setFocused(null), 200)}
+                placeholder="Search destination, stop or street…"
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: 13, fontFamily: "inherit" }}
+              />
+              {(query || selectedDest) && (
+                <button onClick={clearDest} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex" }}>
+                  <X size={13} color="rgba(255,255,255,0.4)" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Walk info strip */}
@@ -218,22 +303,74 @@ export default function DesktopApp() {
                 exit={{ opacity: 0, height: 0 }}
                 style={{
                   margin: "6px 4px 0",
-                  background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.3)",
+                  background: walkInfo.includes("far") ? "rgba(239,68,68,0.1)" : "rgba(249,115,22,0.12)",
+                  border: `1px solid ${walkInfo.includes("far") ? "rgba(239,68,68,0.3)" : "rgba(249,115,22,0.3)"}`,
                   borderRadius: 12, padding: "8px 14px",
                   display: "flex", alignItems: "center", gap: 8,
                   backdropFilter: "blur(16px)",
                 }}
               >
-                <Footprints size={14} color="#f97316" />
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#f97316" }}>{walkInfo}</span>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginLeft: "auto" }}>from your location</span>
+                <Footprints size={14} color={walkInfo.includes("far") ? "#ef4444" : "#f97316"} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: walkInfo.includes("far") ? "#ef4444" : "#f97316" }}>{walkInfo}</span>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginLeft: "auto" }}>
+                  {selectedOrigin ? `from ${selectedOrigin.name}` : usingDefaultLocation ? "from Bengaluru centre" : "from your location"}
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Dropdown results */}
+          {/* FROM dropdown */}
           <AnimatePresence>
-            {focused && (results.length > 0 || query.length === 0) && (
+            {focused === "from" && (fromResults.length > 0 || fromQuery.length > 0) && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  position: "absolute", top: "calc(100% + 8px)", left: 0, right: 0,
+                  background: "rgba(10,13,20,0.97)", border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 16, overflow: "hidden", backdropFilter: "blur(24px)",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.7)", zIndex: 50,
+                }}
+              >
+                <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(249,115,22,0.4), transparent)" }} />
+                <button
+                  onClick={() => { clearOrigin(); setFocused(null); }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(249,115,22,0.07)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                >
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(249,115,22,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📍</div>
+                  <span style={{ color: "#f97316", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
+                    {usingDefaultLocation ? "Bengaluru centre (default)" : "Current location (GPS)"}
+                  </span>
+                </button>
+                {fromResults.map((r, i) => (
+                  <button key={i} onClick={() => handleSelectOrigin(r)}
+                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(249,115,22,0.07)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                  >
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(249,115,22,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>
+                      {typeIcon(r.type)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "inherit", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
+                      <div style={{ color: "rgba(255,255,255,0.38)", fontSize: 11, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.displayName}</div>
+                    </div>
+                  </button>
+                ))}
+                {fromQuery.length > 0 && fromResults.length === 0 && !fromSearching && (
+                  <div style={{ padding: "16px", textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 13 }}>No results for "{fromQuery}"</div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* TO dropdown */}
+          <AnimatePresence>
+            {focused === "to" && (results.length > 0 || query.length === 0) && (
               <motion.div
                 initial={{ opacity: 0, y: -6, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -243,33 +380,28 @@ export default function DesktopApp() {
                   position: "absolute", top: "calc(100% + 8px)", left: 0, right: 0,
                   background: "rgba(10,13,20,0.97)", border: "1px solid rgba(255,255,255,0.1)",
                   borderRadius: 18, overflow: "hidden",
-                  backdropFilter: "blur(24px)",
-                  boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
-                  zIndex: 50,
+                  backdropFilter: "blur(24px)", boxShadow: "0 20px 60px rgba(0,0,0,0.7)", zIndex: 50,
                 }}
               >
-                {/* Top line */}
                 <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(249,115,22,0.4), transparent)" }} />
-
                 {query.length === 0 && (
                   <div style={{ padding: "8px 0 6px" }}>
-                    <div style={{ padding: "6px 16px 8px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5 }}>RECENT</div>
-                    {["MG Road Metro", "Indiranagar", "Koramangala", "Kempegowda Bus Station"].map((name, i) => (
+                    <div style={{ padding: "6px 16px 8px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5 }}>SUGGESTIONS</div>
+                    {["MG Road Metro", "Indiranagar", "Koramangala", "Whitefield", "Electronic City"].map((name, i) => (
                       <button key={i} onClick={() => setQuery(name)}
                         style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(249,115,22,0.07)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
                       >
-                        <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📍</div>
+                        <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🔍</div>
                         <div style={{ color: "#fff", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>{name}</div>
                         <ChevronRight size={13} color="rgba(255,255,255,0.2)" style={{ marginLeft: "auto" }} />
                       </button>
                     ))}
                   </div>
                 )}
-
                 {results.length > 0 && (
-                  <div style={{ padding: "6px 0 8px", maxHeight: 320, overflowY: "auto" }}>
+                  <div style={{ padding: "6px 0 8px", maxHeight: 300, overflowY: "auto" }}>
                     <div style={{ padding: "6px 16px 8px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5 }}>RESULTS</div>
                     {results.map((r, i) => (
                       <button key={i} onClick={() => handleSelectDest(r)}
@@ -289,11 +421,8 @@ export default function DesktopApp() {
                     ))}
                   </div>
                 )}
-
                 {query.length > 0 && results.length === 0 && !searching && (
-                  <div style={{ padding: "20px 16px", textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 13 }}>
-                    No results for "{query}"
-                  </div>
+                  <div style={{ padding: "20px 16px", textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 13 }}>No results for "{query}"</div>
                 )}
               </motion.div>
             )}
@@ -687,7 +816,7 @@ export default function DesktopApp() {
         display: "flex", flexDirection: "column", gap: 8,
       }}>
         {[
-          { icon: <Navigation size={16} color="#fff" />,     tip: "My location", onClick: () => userLocation && {} },
+          { icon: <Navigation size={16} color={usingDefaultLocation ? "rgba(255,255,255,0.4)" : "#26d98c"} />, tip: "My location", onClick: () => userLocation && setMapFlyTarget({ ...userLocation, zoom: 15 }) },
           { icon: <Layers size={16} color="#fff" />,         tip: "Layers",      onClick: () => {} },
           { icon: <Zap size={16} color="#f97316" />,         tip: "Live mode",   onClick: () => {} },
         ].map(({ icon, tip, onClick }, i) => (

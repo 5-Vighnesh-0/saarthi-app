@@ -48,6 +48,7 @@ interface Props {
   walkRoute?: WalkRoute | null;
   userLocation?: { lat: number; lng: number } | null;
   scheduledBuses?: ScheduledBus[];
+  flyTarget?: { lat: number; lng: number; zoom?: number } | null;
 }
 
 export default function TransitMap({
@@ -63,6 +64,7 @@ export default function TransitMap({
   walkRoute = null,
   userLocation = null,
   scheduledBuses = [],
+  flyTarget = null,
 }: Props) {
   const mapRef = useRef<MapRef>(null);
 
@@ -88,6 +90,12 @@ export default function TransitMap({
     const midLng = (autoMarker.lng + pickupMarker.lng) / 2;
     mapRef.current?.flyTo({ center: [midLng, midLat], zoom: 14, duration: 600 });
   }, [autoMarker?.lat, autoMarker?.lng]);
+
+  // Fly to explicit target (e.g. "My location" button)
+  useEffect(() => {
+    if (!flyTarget) return;
+    mapRef.current?.flyTo({ center: [flyTarget.lng, flyTarget.lat], zoom: flyTarget.zoom ?? 14, duration: 900 });
+  }, [flyTarget]);
 
   // Fly to show walk route when it appears
   useEffect(() => {
