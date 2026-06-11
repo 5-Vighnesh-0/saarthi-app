@@ -1,0 +1,5 @@
+android/
+.android/
+*.apk
+*.aab
+node_modules/
