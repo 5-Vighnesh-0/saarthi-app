@@ -1,7 +1,8 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { Search, Navigation, X, ChevronRight, ArrowRight, Footprints, Ticket, ChevronDown, MapPin } from "lucide-react";
+import { Search, Navigation, X, ChevronRight, ArrowRight, Footprints, Ticket, ChevronDown } from "lucide-react";
+import PaymentGateway from "@/components/PaymentGateway";
 import { motion, AnimatePresence } from "framer-motion";
 import { useVehicleSocket } from "@/lib/hooks/useVehicleSocket";
 import { searchBengaluru, typeIcon, type GeoResult } from "@/lib/geocoding";
@@ -60,6 +61,8 @@ export default function MobileApp() {
   const [autoStage, setAutoStage] = useState<"list" | "booked">("list");
   const [bookedDriver, setBookedDriver] = useState<typeof AUTO_DRIVERS[0] | null>(null);
   const [ticketStage, setTicketStage] = useState<"select" | "confirm" | "done">("select");
+  const [payGatewayOpen, setPayGatewayOpen] = useState(false);
+  const [payGatewayRoute, setPayGatewayRoute] = useState({ label: "500D", fare: 25 });
 
   const { vehicles, connected } = useVehicleSocket();
   const buses: BusPosition[] = vehicles.length > 0
@@ -612,7 +615,10 @@ export default function MobileApp() {
                         <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>Return</div>
                       </div>
                     </div>
-                    <motion.button whileTap={{ scale: 0.97 }} onClick={() => setTab("ticket")}
+                    <motion.button whileTap={{ scale: 0.97 }} onClick={() => {
+                      setPayGatewayRoute({ label: detailRoute.route.label, fare: detailRoute.route.fare });
+                      setPayGatewayOpen(true);
+                    }}
                       style={{
                         width: "100%", background: "linear-gradient(135deg, #f97316, #ea580c)",
                         border: "none", borderRadius: 12, padding: "14px",
@@ -910,7 +916,7 @@ export default function MobileApp() {
                           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>Return</div>
                         </div>
                         <motion.button whileTap={{ scale: 0.96 }}
-                          onClick={() => setTicketStage("confirm")}
+                          onClick={() => { setPayGatewayRoute({ label: r.label, fare: r.fare }); setPayGatewayOpen(true); }}
                           style={{ flex: 1.2, background: "linear-gradient(135deg, #f97316, #ea580c)", border: "none", borderRadius: 10, padding: "8px", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
                           Buy
                         </motion.button>
@@ -963,6 +969,16 @@ export default function MobileApp() {
           50% { transform: scale(1.4); opacity: 0.3; }
         }
       `}</style>
+
+      {/* ── Payment Gateway overlay ───────────────────────────── */}
+      <PaymentGateway
+        isOpen={payGatewayOpen}
+        onClose={() => setPayGatewayOpen(false)}
+        routeLabel={payGatewayRoute.label}
+        from={selectedOrigin?.name ?? (usingDefault ? "Bengaluru centre" : "Your location")}
+        to={selectedDest?.name ?? ""}
+        fare={payGatewayRoute.fare}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { Search, Navigation, X, ChevronRight, Clock, ArrowRight, Footprints, Ticket, Layers, Zap } from "lucide-react";
 import MetroSvgIcon from "@/components/ui/MetroSvgIcon";
 import LiquidGlassButton from "@/components/ui/LiquidGlassButton";
+import PaymentGateway from "@/components/PaymentGateway";
 import { motion, AnimatePresence } from "framer-motion";
 import { useVehicleSocket } from "@/lib/hooks/useVehicleSocket";
 import { searchBengaluru, typeIcon, type GeoResult } from "@/lib/geocoding";
@@ -65,9 +66,10 @@ export default function DesktopApp() {
   const [mapFlyTarget, setMapFlyTarget] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [matchedRoutes, setMatchedRoutes] = useState<MatchedRoute[]>([]);
   const [queryRoute, setQueryRoute] = useState<WalkRoute | null>(null);
-  const [selectedMatchIdx, setSelectedMatchIdx] = useState(0); // tracks which card is active for styling
   const [routeSearching, setRouteSearching] = useState(false);
   const [detailRoute, setDetailRoute] = useState<MatchedRoute | null>(null);
+  const [payGatewayOpen, setPayGatewayOpen] = useState(false);
+  const [payGatewayRoute, setPayGatewayRoute] = useState({ label: "500D", fare: 25 });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { vehicles, connected } = useVehicleSocket();
@@ -156,7 +158,6 @@ export default function DesktopApp() {
     setWalkInfo(null);
     setMatchedRoutes([]);
     setQueryRoute(null);
-    setSelectedMatchIdx(0);
 
     const from = selectedOrigin
       ? { lat: selectedOrigin.lat, lng: selectedOrigin.lng }
@@ -699,7 +700,10 @@ export default function DesktopApp() {
                       <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>Return</div>
                     </div>
                   </div>
-                  <motion.button whileTap={{ scale: 0.97 }} onClick={() => setView("ticket")}
+                  <motion.button whileTap={{ scale: 0.97 }} onClick={() => {
+                    setPayGatewayRoute({ label: detailRoute.route.label, fare: detailRoute.route.fare });
+                    setPayGatewayOpen(true);
+                  }}
                     style={{
                       width: "100%", background: "linear-gradient(135deg, #f97316, #ea580c)",
                       border: "none", borderRadius: 12, padding: "12px",
@@ -795,7 +799,7 @@ export default function DesktopApp() {
 
                 return (
                   <motion.button key={m.route.id} whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }}
-                    onClick={() => { setSelectedMatchIdx(i); setDetailRoute(m); }}
+                    onClick={() => setDetailRoute(m)}
                     style={{
                       width: "100%", background: "rgba(10,13,20,0.88)",
                       border: "1px solid rgba(255,255,255,0.08)",
@@ -921,7 +925,7 @@ export default function DesktopApp() {
                   <div style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>Book Auto</div>
                   <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>3 drivers nearby</div>
                 </motion.button>
-                <motion.button whileTap={{ scale: 0.96 }} onClick={() => setView("ticket")}
+                <motion.button whileTap={{ scale: 0.96 }} onClick={() => { setPayGatewayRoute({ label: "500D", fare: 25 }); setPayGatewayOpen(true); }}
                   style={{
                     background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.25)",
                     borderRadius: 14, padding: "14px 12px", cursor: "pointer", textAlign: "left", fontFamily: "inherit",
@@ -1008,7 +1012,10 @@ export default function DesktopApp() {
                 key={q.label}
                 color={q.color}
                 active={view === q.v}
-                onClick={() => { setView(q.v); if (q.v === "auto") setAutoStep("pick"); }}
+                onClick={() => {
+                  if (q.v === "ticket") { setPayGatewayRoute({ label: "500D", fare: 25 }); setPayGatewayOpen(true); }
+                  else { setView(q.v); if (q.v === "auto") setAutoStep("pick"); }
+                }}
                 style={{ flexDirection: "column", gap: 6, padding: "11px 8px", borderRadius: 13, width: "100%" }}
                 icon={q.icon}
               >
@@ -1215,6 +1222,16 @@ export default function DesktopApp() {
           </motion.button>
         ))}
       </div>
+
+      {/* ── Payment Gateway overlay ──────────────────────────────── */}
+      <PaymentGateway
+        isOpen={payGatewayOpen}
+        onClose={() => setPayGatewayOpen(false)}
+        routeLabel={payGatewayRoute.label}
+        from={selectedOrigin?.name ?? (usingDefaultLocation ? "Bengaluru centre" : "Your location")}
+        to={selectedDest?.name ?? ""}
+        fare={payGatewayRoute.fare}
+      />
     </div>
   );
 }
