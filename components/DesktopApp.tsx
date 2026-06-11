@@ -349,9 +349,9 @@ export default function DesktopApp() {
             )}
           </AnimatePresence>
 
-          {/* FROM dropdown */}
+          {/* FROM dropdown — always visible while focused */}
           <AnimatePresence>
-            {focused === "from" && (fromResults.length > 0 || fromQuery.length > 0) && (
+            {focused === "from" && (
               <motion.div
                 initial={{ opacity: 0, y: -6, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -365,6 +365,8 @@ export default function DesktopApp() {
                 }}
               >
                 <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(249,115,22,0.4), transparent)" }} />
+
+                {/* GPS / default option always visible */}
                 <button
                   onClick={() => { clearOrigin(); setFocused(null); }}
                   style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
@@ -376,6 +378,16 @@ export default function DesktopApp() {
                     {usingDefaultLocation ? "Bengaluru centre (default)" : "Current location (GPS)"}
                   </span>
                 </button>
+
+                {/* Spinner */}
+                {fromQuery.length > 0 && fromSearching && fromResults.length === 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px" }}>
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      style={{ width: 16, height: 16, border: "2px solid #f97316", borderTopColor: "transparent", borderRadius: "50%", flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>Searching…</span>
+                  </div>
+                )}
+
                 {fromResults.map((r, i) => (
                   <button key={i} onClick={() => handleSelectOrigin(r)}
                     style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
@@ -391,16 +403,17 @@ export default function DesktopApp() {
                     </div>
                   </button>
                 ))}
-                {fromQuery.length > 0 && fromResults.length === 0 && !fromSearching && (
-                  <div style={{ padding: "16px", textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 13 }}>No results for "{fromQuery}"</div>
+
+                {fromQuery.length > 0 && !fromSearching && fromResults.length === 0 && (
+                  <div style={{ padding: "14px 16px", textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 13 }}>No results for "{fromQuery}"</div>
                 )}
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* TO dropdown */}
+          {/* TO dropdown — always visible while focused */}
           <AnimatePresence>
-            {focused === "to" && (results.length > 0 || query.length === 0) && (
+            {focused === "to" && (
               <motion.div
                 initial={{ opacity: 0, y: -6, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -414,45 +427,62 @@ export default function DesktopApp() {
                 }}
               >
                 <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(249,115,22,0.4), transparent)" }} />
+
+                {/* Suggestions when empty */}
                 {query.length === 0 && (
-                  <div style={{ padding: "8px 0 6px" }}>
-                    <div style={{ padding: "6px 16px 8px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5 }}>SUGGESTIONS</div>
-                    {["MG Road Metro", "Indiranagar", "Koramangala", "Whitefield", "Electronic City"].map((name, i) => (
+                  <div style={{ padding: "8px 0 8px" }}>
+                    <div style={{ padding: "6px 16px 8px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5 }}>POPULAR IN BENGALURU</div>
+                    {["Hennur", "Byrathi", "Whitefield", "Electronic City", "Indiranagar", "Koramangala"].map((name, i) => (
                       <button key={i} onClick={() => setQuery(name)}
                         style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(249,115,22,0.07)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
                       >
-                        <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🔍</div>
+                        <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(249,115,22,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>📍</div>
                         <div style={{ color: "#fff", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>{name}</div>
                         <ChevronRight size={13} color="rgba(255,255,255,0.2)" style={{ marginLeft: "auto" }} />
                       </button>
                     ))}
                   </div>
                 )}
+
+                {/* Spinner while searching */}
+                {query.length > 0 && searching && results.length === 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "18px 16px" }}>
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      style={{ width: 16, height: 16, border: "2px solid #f97316", borderTopColor: "transparent", borderRadius: "50%", flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>Searching Bengaluru…</span>
+                  </div>
+                )}
+
+                {/* Results */}
                 {results.length > 0 && (
-                  <div style={{ padding: "6px 0 8px", maxHeight: 300, overflowY: "auto" }}>
-                    <div style={{ padding: "6px 16px 8px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5 }}>RESULTS</div>
+                  <div style={{ maxHeight: 320, overflowY: "auto" }}>
+                    <div style={{ padding: "8px 16px 6px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5 }}>PLACES</div>
                     {results.map((r, i) => (
                       <button key={i} onClick={() => handleSelectDest(r)}
                         style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(249,115,22,0.07)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
                       >
-                        <div style={{ width: 34, height: 34, borderRadius: 9, background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 9, background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
                           {typeIcon(r.type)}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "inherit", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
-                          <div style={{ color: "rgba(255,255,255,0.38)", fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.displayName}</div>
+                          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.displayName}</div>
                         </div>
                         <ArrowRight size={13} color="rgba(255,255,255,0.2)" style={{ flexShrink: 0 }} />
                       </button>
                     ))}
                   </div>
                 )}
-                {query.length > 0 && results.length === 0 && !searching && (
-                  <div style={{ padding: "20px 16px", textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 13 }}>No results for "{query}"</div>
+
+                {/* No results */}
+                {query.length > 0 && !searching && results.length === 0 && (
+                  <div style={{ padding: "20px 16px", textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 13 }}>
+                    No places found for "{query}"
+                  </div>
                 )}
               </motion.div>
             )}
