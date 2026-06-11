@@ -215,8 +215,8 @@ export default function DesktopApp() {
       <div style={{ position: "absolute", inset: 0 }}>
         <TransitMap
           accent={view === "metro" ? "#7c3aed" : view === "auto" ? "#f59e0b" : "#f97316"}
-          buses={view === "metro" || view === "ticket" ? [] : buses}
-          stops={view === "metro" ? METRO_STATIONS.map(s => ({ ...s, time: "", lines: s.lines })) : ROUTE_STOPS}
+          buses={selectedDest || view === "metro" || view === "ticket" ? [] : buses}
+          stops={selectedDest ? [] : (view === "metro" ? METRO_STATIONS.map(s => ({ ...s, time: "", lines: s.lines })) : ROUTE_STOPS)}
           selected={selIdx}
           onSelectBus={handleSelectBus}
           center={{ lat: 12.9609, lng: 77.6200 }}

@@ -24,8 +24,8 @@ export interface MatchedRoute {
   nextBusMin: number;
 }
 
-const BOARD_RADIUS_M = 2500;
-const ALIGHT_RADIUS_M = 2500;
+const BOARD_RADIUS_M = 3500;
+const ALIGHT_RADIUS_M = 3500;
 const WALK_SPEED_MPS = 1.2;
 const AVG_STOP_SECS = 180;
 

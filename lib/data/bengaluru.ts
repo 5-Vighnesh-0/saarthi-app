@@ -241,6 +241,48 @@ export const ALL_BUS_ROUTES: BusRoute[] = [
     ],
   },
 
+  // ── Whitefield ↔ north/north-east Bengaluru ─────────────────────────────
+  {
+    id: "319", label: "319", from: "Whitefield", to: "Byrathi",
+    color: "#22d3ee", fare: 30, freqMin: 25,
+    stops: [
+      { name: "Whitefield",      lat: 12.9698, lng: 77.7499 },
+      { name: "ITPL",            lat: 12.9811, lng: 77.7283 },
+      { name: "Marathahalli",    lat: 12.9591, lng: 77.6971 },
+      { name: "KR Puram",        lat: 12.9940, lng: 77.6967 },
+      { name: "Horamavu",        lat: 13.0196, lng: 77.6683 },
+      { name: "Kothanur",        lat: 13.0576, lng: 77.6780 },
+      { name: "Byrathi",         lat: 13.0648, lng: 77.7096 },
+    ],
+  },
+  {
+    id: "319R", label: "319R", from: "Byrathi", to: "Whitefield",
+    color: "#22d3ee", fare: 30, freqMin: 25,
+    stops: [
+      { name: "Byrathi",         lat: 13.0648, lng: 77.7096 },
+      { name: "Kothanur",        lat: 13.0576, lng: 77.6780 },
+      { name: "Horamavu",        lat: 13.0196, lng: 77.6683 },
+      { name: "KR Puram",        lat: 12.9940, lng: 77.6967 },
+      { name: "Marathahalli",    lat: 12.9591, lng: 77.6971 },
+      { name: "ITPL",            lat: 12.9811, lng: 77.7283 },
+      { name: "Whitefield",      lat: 12.9698, lng: 77.7499 },
+    ],
+  },
+  {
+    id: "401R", label: "401R", from: "Byrathi", to: "Kempegowda BS",
+    color: "#ec1c3c", fare: 28, freqMin: 20,
+    stops: [
+      { name: "Byrathi",         lat: 13.0648, lng: 77.7096 },
+      { name: "Kothanur",        lat: 13.0576, lng: 77.6780 },
+      { name: "CRPF Camp",       lat: 13.0480, lng: 77.6620 },
+      { name: "Hennur",          lat: 13.0342, lng: 77.6495 },
+      { name: "Hennur Cross",    lat: 13.0259, lng: 77.6390 },
+      { name: "Kalyan Nagar",    lat: 13.0239, lng: 77.6455 },
+      { name: "Jayamahal",       lat: 13.0011, lng: 77.6082 },
+      { name: "Shivajinagar",    lat: 12.9875, lng: 77.5986 },
+      { name: "Kempegowda BS",   lat: 12.9767, lng: 77.5713 },
+    ],
+  },
   // ── East & north-east Bengaluru routes ──────────────────────────────────
   {
     id: "314", label: "314", from: "Whitefield", to: "Hennur Cross",
