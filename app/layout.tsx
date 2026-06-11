@@ -16,6 +16,11 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Saarthi",
+    startupImage: "/icon-512.png",
+  },
+  icons: {
+    apple: [{ url: "/icon-192.png", sizes: "192x192" }],
+    icon: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
   },
 };
 

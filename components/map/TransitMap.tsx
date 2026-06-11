@@ -8,8 +8,8 @@ import type { WalkRoute } from "@/lib/routing";
 import BusIcon from "@/components/ui/BusIcon";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-// OpenFreeMap "Liberty" dark style — free, no API key, works without rate-limit issues
-const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+// CARTO Dark Matter — true black base map
+const MAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 const routeLayer: LayerProps = {
   id: "route-line", type: "line",

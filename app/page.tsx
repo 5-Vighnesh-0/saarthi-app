@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import AppShell from "@/components/AppShell";
+import MobileApp from "@/components/MobileApp";
 import DesktopApp from "@/components/DesktopApp";
 
 export default function Home() {
@@ -15,15 +15,6 @@ export default function Home() {
 
   if (isMobile === null) return null;
 
-  // Mobile / PWA: full-screen app shell
-  if (isMobile) {
-    return (
-      <div style={{ width: "100vw", height: "100dvh", overflow: "hidden" }}>
-        <AppShell />
-      </div>
-    );
-  }
-
-  // Desktop: full-screen map app interface
+  if (isMobile) return <MobileApp />;
   return <DesktopApp />;
 }
