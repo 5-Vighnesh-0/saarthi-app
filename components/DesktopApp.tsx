@@ -1,7 +1,7 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { Search, Navigation, X, ChevronRight, Clock, ArrowRight, Footprints, Ticket } from "lucide-react";
+import { Search, Navigation, X, ChevronRight, Clock, ArrowRight, Footprints, Ticket, Layers, Zap } from "lucide-react";
 import MetroSvgIcon from "@/components/ui/MetroSvgIcon";
 import LiquidGlassButton from "@/components/ui/LiquidGlassButton";
 import { motion, AnimatePresence } from "framer-motion";
