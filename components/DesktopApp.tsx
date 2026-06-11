@@ -67,6 +67,7 @@ export default function DesktopApp() {
   const [queryRoute, setQueryRoute] = useState<WalkRoute | null>(null);
   const [selectedMatchIdx, setSelectedMatchIdx] = useState(0);
   const [routeSearching, setRouteSearching] = useState(false);
+  const [detailRoute, setDetailRoute] = useState<MatchedRoute | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { vehicles, connected } = useVehicleSocket();
@@ -195,6 +196,7 @@ export default function DesktopApp() {
     setWalkInfo(null);
     setMatchedRoutes([]);
     setQueryRoute(null);
+    setDetailRoute(null);
   };
 
   const clearOrigin = () => {
@@ -521,9 +523,104 @@ export default function DesktopApp() {
           overflowY: "auto", paddingBottom: 4,
         }}
       >
-        {/* Route results card — shows matched routes when dest is selected, else live bus tracking */}
+        {/* Left panel: 3 states — empty prompt / matched list / route detail */}
         <AnimatePresence mode="wait">
-          {selectedDest ? (
+
+          {/* ── STATE 3: Route detail (bus timings) ── */}
+          {selectedDest && detailRoute ? (
+            <motion.div key="route-detail"
+              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+            >
+              <GlassCard glow style={{ padding: "16px", position: "relative" }}>
+                {/* Back button */}
+                <button onClick={() => setDetailRoute(null)}
+                  style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", padding: "0 0 12px", color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "inherit" }}
+                >
+                  <ChevronRight size={13} style={{ transform: "rotate(180deg)" }} />
+                  Back to routes
+                </button>
+
+                {/* Route header */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                  <div style={{
+                    width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                    background: detailRoute.route.color + "22", border: `2px solid ${detailRoute.route.color}66`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 13, fontWeight: 900, color: detailRoute.route.color,
+                  }}>{detailRoute.route.label}</div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>
+                      {detailRoute.route.from} → {detailRoute.route.to}
+                    </div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 3 }}>
+                      Every ~{detailRoute.route.freqMin} min · ₹{detailRoute.route.fare}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Board / alight stops */}
+                <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                  <div style={{ flex: 1, background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)", borderRadius: 12, padding: "9px 12px" }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "#60a5fa", letterSpacing: 1.2, marginBottom: 3 }}>BOARD AT</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{detailRoute.boardStop.name}</div>
+                    {detailRoute.walkToBoardM > 0 && (
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2, display: "flex", alignItems: "center", gap: 3 }}>
+                        <Footprints size={9} /> {Math.round(detailRoute.walkToBoardM / 80)} min walk
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.25)", borderRadius: 12, padding: "9px 12px" }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "#f97316", letterSpacing: 1.2, marginBottom: 3 }}>ALIGHT AT</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{detailRoute.alightStop.name}</div>
+                    {detailRoute.walkFromAlightM > 0 && (
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2, display: "flex", alignItems: "center", gap: 3 }}>
+                        <Footprints size={9} /> {Math.round(detailRoute.walkFromAlightM / 80)} min walk
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Upcoming buses */}
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5, marginBottom: 10 }}>
+                  UPCOMING BUSES AT {detailRoute.boardStop.name.toUpperCase()}
+                </div>
+                {[0, 1, 2, 3, 4].map((offset) => {
+                  const arrivalMin = detailRoute.nextBusMin + offset * detailRoute.route.freqMin;
+                  const crowds = ["Seats free", "Seats free", "Filling up", "Seats free", "Full"] as const;
+                  const crowd = crowds[offset % crowds.length];
+                  const crowdColor = crowd === "Full" ? "#ec1c3c" : crowd === "Filling up" ? "#f97316" : "#4ade80";
+                  const crowdWidth = crowd === "Full" ? "90%" : crowd === "Filling up" ? "58%" : "22%";
+                  return (
+                    <div key={offset} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px",
+                      background: offset === 0 ? "rgba(249,115,22,0.1)" : "rgba(255,255,255,0.03)",
+                      border: `1px solid ${offset === 0 ? "rgba(249,115,22,0.35)" : "rgba(255,255,255,0.06)"}`,
+                      borderRadius: 12, marginBottom: offset < 4 ? 6 : 0,
+                    }}>
+                      <div style={{ fontSize: 20 }}>🚌</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>{arrivalMin}</span>
+                          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>min</span>
+                          {offset === 0 && (
+                            <span style={{ fontSize: 9, fontWeight: 700, color: "#f97316", background: "rgba(249,115,22,0.15)", padding: "1px 6px", borderRadius: 8 }}>NEXT</span>
+                          )}
+                        </div>
+                        <div style={{ marginTop: 4, height: 3, borderRadius: 3, background: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
+                          <div style={{ height: "100%", borderRadius: 3, width: crowdWidth, background: crowdColor }} />
+                        </div>
+                        <div style={{ fontSize: 10, color: crowdColor, fontWeight: 700, marginTop: 2 }}>{crowd}</div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#4ade80" }}>₹{detailRoute.route.fare}</span>
+                    </div>
+                  );
+                })}
+              </GlassCard>
+            </motion.div>
+
+          ) : selectedDest ? (
+            /* ── STATE 2: Matched route list ── */
             <motion.div key="route-results"
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
             >
@@ -547,7 +644,7 @@ export default function DesktopApp() {
 
                 {!routeSearching && matchedRoutes.length === 0 && (
                   <div style={{ padding: "16px 0", textAlign: "center" }}>
-                    <div style={{ fontSize: 22, marginBottom: 8 }}>🔍</div>
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>🔍</div>
                     <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>No direct routes found</div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>Try selecting stops closer to a bus stand</div>
                   </div>
@@ -555,19 +652,18 @@ export default function DesktopApp() {
 
                 {!routeSearching && matchedRoutes.map((m, i) => (
                   <motion.button key={m.route.id} whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedMatchIdx(i)}
+                    onClick={() => { setSelectedMatchIdx(i); setDetailRoute(m); }}
                     style={{
                       width: "100%", display: "flex", alignItems: "flex-start", gap: 11,
-                      background: selectedMatchIdx === i ? "rgba(249,115,22,0.14)" : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${selectedMatchIdx === i ? "rgba(249,115,22,0.4)" : "rgba(255,255,255,0.06)"}`,
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.06)",
                       borderRadius: 14, padding: "12px 12px",
                       marginBottom: i < matchedRoutes.length - 1 ? 8 : 0,
                       cursor: "pointer", textAlign: "left", transition: "background 0.15s",
                     }}
                   >
-                    {/* Route badge */}
                     <div style={{
-                      minWidth: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                      minWidth: 44, height: 44, borderRadius: 12, flexShrink: 0,
                       background: m.route.color + "22", border: `2px solid ${m.route.color}55`,
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 11, fontWeight: 900, color: m.route.color,
@@ -580,86 +676,56 @@ export default function DesktopApp() {
                           background: "rgba(249,115,22,0.15)", color: "#f97316", border: "1px solid rgba(249,115,22,0.3)",
                         }}>Next {m.nextBusMin}m</span>
                       </div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        Board at {m.boardStop.name} · Alight at {m.alightStop.name}
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {m.boardStop.name} → {m.alightStop.name}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 5 }}>
                         {m.walkToBoardM > 0 && (
-                          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", display: "flex", alignItems: "center", gap: 3 }}>
+                          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", gap: 3 }}>
                             <Footprints size={10} /> {Math.round(m.walkToBoardM / 80)} min walk
                           </span>
                         )}
-                        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{m.rideStops} stops</span>
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{m.rideStops} stops</span>
                         <span style={{ fontSize: 10, fontWeight: 700, color: "#4ade80", marginLeft: "auto" }}>₹{m.route.fare}</span>
                       </div>
                     </div>
-                    <ChevronRight size={14} color={selectedMatchIdx === i ? "#f97316" : "rgba(255,255,255,0.2)"} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <ChevronRight size={14} color="rgba(255,255,255,0.2)" style={{ flexShrink: 0, marginTop: 2 }} />
                   </motion.button>
                 ))}
               </GlassCard>
             </motion.div>
+
           ) : (
-            <motion.div key="live-buses"
+            /* ── STATE 1: Empty / search prompt ── */
+            <motion.div key="empty-prompt"
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
             >
-              <GlassCard glow style={{ padding: "16px", position: "relative" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5 }}>ROUTE 500D · LIVE</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginTop: 3 }}>Majestic → Silk Board</div>
-                  </div>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.25)",
-                    borderRadius: 20, padding: "4px 10px",
-                  }}>
-                    <motion.div animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1.2, repeat: Infinity }}
-                      style={{ width: 6, height: 6, borderRadius: "50%", background: "#f97316" }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "#f97316" }}>LIVE</span>
-                  </div>
+              <GlassCard style={{ padding: "24px 20px", position: "relative", textAlign: "center" }}>
+                <div style={{
+                  width: 52, height: 52, borderRadius: 16,
+                  background: "linear-gradient(135deg, #f97316, #ea580c)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 26, margin: "0 auto 14px", boxShadow: "0 6px 20px rgba(249,115,22,0.35)",
+                }}>🚌</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginBottom: 6 }}>Find your bus</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.5, marginBottom: 18 }}>
+                  Enter a destination above to see which buses serve your route
                 </div>
-
-                {buses.map((b, i) => (
-                  <motion.button key={i} whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}
-                    onClick={() => handleSelectBus(i)}
-                    style={{
-                      width: "100%", display: "flex", alignItems: "center", gap: 12,
-                      background: selIdx === i ? "rgba(249,115,22,0.14)" : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${selIdx === i ? "rgba(249,115,22,0.4)" : "rgba(255,255,255,0.06)"}`,
-                      borderRadius: 14, padding: "12px 12px",
-                      marginBottom: i < buses.length - 1 ? 8 : 0,
-                      cursor: "pointer", textAlign: "left", transition: "background 0.15s",
-                    }}
-                  >
-                    <div style={{
-                      width: 42, height: 42, borderRadius: 13, flexShrink: 0,
-                      background: selIdx === i ? "linear-gradient(135deg, #f97316, #ea580c)" : "rgba(249,115,22,0.12)",
-                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
-                      boxShadow: selIdx === i ? "0 4px 14px rgba(249,115,22,0.3)" : "none",
-                    }}>🚌</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                        <span style={{ fontWeight: 800, fontSize: 15, color: "#fff" }}>{b.mins}</span>
-                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 600 }}>min away</span>
-                      </div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        Near {b.near}
-                      </div>
-                      <div style={{ marginTop: 6, height: 3, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                        <div style={{
-                          height: "100%", borderRadius: 3,
-                          width: b.crowd === "Full" ? "95%" : b.crowd === "Filling up" ? "60%" : "25%",
-                          background: b.crowd === "Full" ? "#ec1c3c" : b.crowd === "Filling up" ? "#f97316" : "#4ade80",
-                          transition: "width 0.4s ease",
-                        }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: b.crowd === "Full" ? "#ec1c3c" : b.crowd === "Filling up" ? "#f97316" : "#4ade80", fontWeight: 700, marginTop: 3 }}>
-                        {b.crowd}
-                      </div>
-                    </div>
-                    <ChevronRight size={14} color={selIdx === i ? "#f97316" : "rgba(255,255,255,0.2)"} />
-                  </motion.button>
-                ))}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 7, justifyContent: "center" }}>
+                  {["Byrathi", "Whitefield", "Electronic City", "Hebbal", "Silk Board", "KR Puram"].map((place) => (
+                    <button key={place} onClick={() => setQuery(place)}
+                      style={{
+                        background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.25)",
+                        borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 700,
+                        color: "#f97316", cursor: "pointer", fontFamily: "inherit",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(249,115,22,0.2)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(249,115,22,0.1)")}
+                    >
+                      {place}
+                    </button>
+                  ))}
+                </div>
               </GlassCard>
             </motion.div>
           )}
