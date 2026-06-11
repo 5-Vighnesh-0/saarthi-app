@@ -124,6 +124,124 @@ export const SCHEDULED_BUSES: ScheduledBus[] = [
   { id: "sch-KIA-1",  routeId: "KIA",  routeLabel: "KIA",  departsIn: 30, from: "Kempegowda Intl", to: "Majestic",        fare: 60, startLat: 13.1986, startLng: 77.7066 },
 ];
 
+// ── Bus route catalog with real stop coordinates ─────────────────────────
+export interface BusRouteStop {
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+export interface BusRoute {
+  id: string;
+  label: string;
+  from: string;
+  to: string;
+  color: string;
+  fare: number;
+  freqMin: number;
+  stops: BusRouteStop[];
+}
+
+export const ALL_BUS_ROUTES: BusRoute[] = [
+  {
+    id: "401", label: "401", from: "Kempegowda BS", to: "Byrathi",
+    color: "#ec1c3c", fare: 28, freqMin: 20,
+    stops: [
+      { name: "Kempegowda BS",   lat: 12.9767, lng: 77.5713 },
+      { name: "Shivajinagar",    lat: 12.9875, lng: 77.5986 },
+      { name: "Jayamahal",       lat: 13.0011, lng: 77.6082 },
+      { name: "Kalyan Nagar",    lat: 13.0239, lng: 77.6455 },
+      { name: "Hennur Cross",    lat: 13.0259, lng: 77.6390 },
+      { name: "Hennur",          lat: 13.0342, lng: 77.6495 },
+      { name: "CRPF Camp",       lat: 13.0480, lng: 77.6620 },
+      { name: "Kothanur",        lat: 13.0576, lng: 77.6780 },
+      { name: "Byrathi",         lat: 13.0648, lng: 77.7096 },
+    ],
+  },
+  {
+    id: "333E", label: "333E", from: "Shivajinagar", to: "Hennur",
+    color: "#f59e0b", fare: 22, freqMin: 15,
+    stops: [
+      { name: "Shivajinagar",   lat: 12.9875, lng: 77.5986 },
+      { name: "Jayamahal",      lat: 13.0011, lng: 77.6082 },
+      { name: "Hennur Road",    lat: 13.0110, lng: 77.6186 },
+      { name: "HBR Layout",     lat: 13.0169, lng: 77.6321 },
+      { name: "Hennur Cross",   lat: 13.0259, lng: 77.6390 },
+      { name: "Hennur",         lat: 13.0342, lng: 77.6495 },
+    ],
+  },
+  {
+    id: "335K", label: "335K", from: "Majestic", to: "Byrathi",
+    color: "#8b5cf6", fare: 32, freqMin: 25,
+    stops: [
+      { name: "Majestic",        lat: 12.9767, lng: 77.5713 },
+      { name: "Shivajinagar",    lat: 12.9875, lng: 77.5986 },
+      { name: "Hennur Road",     lat: 13.0110, lng: 77.6186 },
+      { name: "Hennur Cross",    lat: 13.0259, lng: 77.6390 },
+      { name: "Hennur",          lat: 13.0342, lng: 77.6495 },
+      { name: "Thanisandra",     lat: 13.0505, lng: 77.6560 },
+      { name: "Kothanur",        lat: 13.0576, lng: 77.6780 },
+      { name: "Byrathi",         lat: 13.0648, lng: 77.7096 },
+    ],
+  },
+  {
+    id: "500D", label: "500D", from: "Majestic", to: "Silk Board",
+    color: "#ec1c3c", fare: 25, freqMin: 12,
+    stops: [
+      { name: "Majestic",      lat: 12.9767, lng: 77.5713 },
+      { name: "Indiranagar",   lat: 12.9784, lng: 77.6408 },
+      { name: "Domlur",        lat: 12.9609, lng: 77.6387 },
+      { name: "Koramangala",   lat: 12.9352, lng: 77.6245 },
+      { name: "Silk Board",    lat: 12.9170, lng: 77.6229 },
+    ],
+  },
+  {
+    id: "G4", label: "G4", from: "Hebbal", to: "Electronic City",
+    color: "#16b39a", fare: 30, freqMin: 25,
+    stops: [
+      { name: "Hebbal",           lat: 13.0358, lng: 77.5970 },
+      { name: "Mekhri Circle",    lat: 13.0153, lng: 77.5838 },
+      { name: "MG Road",          lat: 12.9758, lng: 77.6096 },
+      { name: "Koramangala",      lat: 12.9352, lng: 77.6245 },
+      { name: "HSR Layout",       lat: 12.9116, lng: 77.6389 },
+      { name: "Electronic City",  lat: 12.8451, lng: 77.6602 },
+    ],
+  },
+  {
+    id: "335E", label: "335E", from: "KR Market", to: "Whitefield",
+    color: "#3b82f6", fare: 30, freqMin: 20,
+    stops: [
+      { name: "KR Market",       lat: 12.9674, lng: 77.5758 },
+      { name: "Richmond Circle", lat: 12.9636, lng: 77.5977 },
+      { name: "Indiranagar",     lat: 12.9784, lng: 77.6408 },
+      { name: "Marathahalli",    lat: 12.9591, lng: 77.6971 },
+      { name: "Whitefield",      lat: 12.9698, lng: 77.7499 },
+    ],
+  },
+  {
+    id: "201R", label: "201R", from: "Shivajinagar", to: "KR Puram",
+    color: "#a855f7", fare: 22, freqMin: 18,
+    stops: [
+      { name: "Shivajinagar",    lat: 12.9875, lng: 77.5986 },
+      { name: "Indiranagar",     lat: 12.9784, lng: 77.6408 },
+      { name: "Domlur",          lat: 12.9609, lng: 77.6387 },
+      { name: "Old Madras Road", lat: 12.9758, lng: 77.6650 },
+      { name: "KR Puram",        lat: 12.9940, lng: 77.6967 },
+    ],
+  },
+  {
+    id: "KIA", label: "KIA Express", from: "Majestic", to: "Airport",
+    color: "#f59e0b", fare: 60, freqMin: 30,
+    stops: [
+      { name: "Majestic",        lat: 12.9767, lng: 77.5713 },
+      { name: "Hebbal",          lat: 13.0358, lng: 77.5970 },
+      { name: "Yelahanka",       lat: 13.1006, lng: 77.5944 },
+      { name: "Devanahalli",     lat: 13.2468, lng: 77.7116 },
+      { name: "Airport",         lat: 13.1986, lng: 77.7066 },
+    ],
+  },
+];
+
 // Metro stations for the Purple line
 export const METRO_STATIONS: Stop[] = [
   { id: "mg", name: "MG Road", sub: "Purple Line", lat: 12.9758, lng: 77.6096, lines: ["PUR"] },

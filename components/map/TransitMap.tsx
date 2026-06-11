@@ -30,6 +30,16 @@ const walkCasingLayer: LayerProps = {
   paint: { "line-color": "#fff", "line-width": 7, "line-opacity": 0.12 },
   layout: { "line-join": "round", "line-cap": "round" },
 };
+const queryLineLayer: LayerProps = {
+  id: "query-line", type: "line",
+  paint: { "line-color": "#60a5fa", "line-width": 5, "line-opacity": 0.85 },
+  layout: { "line-join": "round", "line-cap": "round" },
+};
+const queryCasingLayer: LayerProps = {
+  id: "query-casing", type: "line",
+  paint: { "line-color": "#000", "line-width": 11, "line-opacity": 0.18 },
+  layout: { "line-join": "round", "line-cap": "round" },
+};
 
 export interface AutoMarkerData {
   lat: number; lng: number; driverName: string; arrived: boolean;
@@ -46,6 +56,9 @@ interface Props {
   autoMarker?: AutoMarkerData | null;
   pickupMarker?: { lat: number; lng: number } | null;
   walkRoute?: WalkRoute | null;
+  queryRoute?: WalkRoute | null;
+  originPin?: { lat: number; lng: number; label: string } | null;
+  destPin?: { lat: number; lng: number; label: string } | null;
   userLocation?: { lat: number; lng: number } | null;
   scheduledBuses?: ScheduledBus[];
   flyTarget?: { lat: number; lng: number; zoom?: number } | null;
@@ -62,6 +75,9 @@ export default function TransitMap({
   autoMarker = null,
   pickupMarker = null,
   walkRoute = null,
+  queryRoute = null,
+  originPin = null,
+  destPin = null,
   userLocation = null,
   scheduledBuses = [],
   flyTarget = null,
@@ -77,6 +93,12 @@ export default function TransitMap({
     type: "Feature" as const,
     properties: {},
     geometry: walkRoute.geometry,
+  } : null;
+
+  const queryGeoJSON = queryRoute ? {
+    type: "Feature" as const,
+    properties: {},
+    geometry: queryRoute.geometry,
   } : null;
 
   useEffect(() => {
@@ -108,6 +130,17 @@ export default function TransitMap({
     );
   }, [walkRoute]);
 
+  // Fit map to show transit query route (origin → destination)
+  useEffect(() => {
+    if (!queryRoute) return;
+    const lats = queryRoute.geometry.coordinates.map(c => c[1]);
+    const lngs = queryRoute.geometry.coordinates.map(c => c[0]);
+    mapRef.current?.fitBounds(
+      [[Math.min(...lngs) - 0.01, Math.min(...lats) - 0.01], [Math.max(...lngs) + 0.01, Math.max(...lats) + 0.01]],
+      { duration: 1000, padding: { top: 80, bottom: 80, left: 340, right: 80 } }
+    );
+  }, [queryRoute]);
+
   return (
     <Map
       ref={mapRef}
@@ -130,6 +163,46 @@ export default function TransitMap({
           <Layer {...walkCasingLayer} />
           <Layer {...walkLineLayer} />
         </Source>
+      )}
+
+      {/* Transit query route (origin → destination blue corridor) */}
+      {queryGeoJSON && (
+        <Source id="query-route" type="geojson" data={queryGeoJSON}>
+          <Layer {...queryCasingLayer} />
+          <Layer {...queryLineLayer} />
+        </Source>
+      )}
+
+      {/* Origin pin */}
+      {originPin && (
+        <Marker latitude={originPin.lat} longitude={originPin.lng} anchor="bottom">
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{
+              background: "rgba(10,13,20,0.92)", border: "2px solid #60a5fa",
+              borderRadius: 10, padding: "4px 9px",
+              fontWeight: 700, fontSize: 11, color: "#60a5fa",
+              boxShadow: "0 4px 14px rgba(96,165,250,0.35)", whiteSpace: "nowrap",
+            }}>📍 {originPin.label}</div>
+            <div style={{ width: 2, height: 8, background: "#60a5fa", borderRadius: 2 }} />
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#60a5fa" }} />
+          </div>
+        </Marker>
+      )}
+
+      {/* Destination pin */}
+      {destPin && (
+        <Marker latitude={destPin.lat} longitude={destPin.lng} anchor="bottom">
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{
+              background: "rgba(10,13,20,0.92)", border: "2px solid #f97316",
+              borderRadius: 10, padding: "4px 9px",
+              fontWeight: 700, fontSize: 11, color: "#f97316",
+              boxShadow: "0 4px 14px rgba(249,115,22,0.35)", whiteSpace: "nowrap",
+            }}>📍 {destPin.label}</div>
+            <div style={{ width: 2, height: 8, background: "#f97316", borderRadius: 2 }} />
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#f97316" }} />
+          </div>
+        </Marker>
       )}
 
       {/* User location dot */}
