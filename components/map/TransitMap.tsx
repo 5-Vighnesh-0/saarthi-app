@@ -152,11 +152,13 @@ export default function TransitMap({
     >
       <NavigationControl position="bottom-right" showCompass={false} />
 
-      {/* Transit route line */}
-      <Source id="route" type="geojson" data={routeGeoJSON}>
-        <Layer {...routeCasingLayer} />
-        <Layer {...routeLayer} />
-      </Source>
+      {/* Static route corridor — hidden when a user query route is active */}
+      {!queryRoute && (
+        <Source id="route" type="geojson" data={routeGeoJSON}>
+          <Layer {...routeCasingLayer} />
+          <Layer {...routeLayer} />
+        </Source>
+      )}
 
       {/* Walking route overlay */}
       {walkGeoJSON && (

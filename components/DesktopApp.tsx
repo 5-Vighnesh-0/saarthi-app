@@ -65,7 +65,7 @@ export default function DesktopApp() {
   const [mapFlyTarget, setMapFlyTarget] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [matchedRoutes, setMatchedRoutes] = useState<MatchedRoute[]>([]);
   const [queryRoute, setQueryRoute] = useState<WalkRoute | null>(null);
-  const [selectedMatchIdx, setSelectedMatchIdx] = useState(0);
+  const [selectedMatchIdx, setSelectedMatchIdx] = useState(0); // tracks which card is active for styling
   const [routeSearching, setRouteSearching] = useState(false);
   const [detailRoute, setDetailRoute] = useState<MatchedRoute | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -731,7 +731,8 @@ export default function DesktopApp() {
           )}
         </AnimatePresence>
 
-        {/* Scheduled buses toggle */}
+        {/* Scheduled buses, Quick Access, Metro, Auto, Ticket — home screen only */}
+        {!selectedDest && (<>
         <GlassCard style={{ padding: "14px 16px", position: "relative" }}>
           <button onClick={() => setShowScheduled((v) => !v)}
             style={{
@@ -984,41 +985,7 @@ export default function DesktopApp() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Selected dest detail */}
-        <AnimatePresence>
-          {selectedDest && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
-              <GlassCard glow style={{ padding: "14px 16px", position: "relative" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
-                  <div style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5, marginBottom: 4 }}>DESTINATION</div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedDest.name}</div>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedDest.displayName}</div>
-                  </div>
-                  <button onClick={clearDest} style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 8, width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
-                    <X size={13} color="rgba(255,255,255,0.6)" />
-                  </button>
-                </div>
-                {walkInfo && (
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.22)",
-                    borderRadius: 10, padding: "8px 12px",
-                  }}>
-                    <Footprints size={13} color="#f97316" />
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#fb923c" }}>{walkInfo}</span>
-                  </div>
-                )}
-                {!userLocation && (
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 8, textAlign: "center" }}>
-                    Allow location for walking route
-                  </div>
-                )}
-              </GlassCard>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </>)}
       </motion.div>
 
       {/* ── Map controls (bottom-right) ──────────────────────────── */}

@@ -240,6 +240,82 @@ export const ALL_BUS_ROUTES: BusRoute[] = [
       { name: "Airport",         lat: 13.1986, lng: 77.7066 },
     ],
   },
+
+  // ── East & north-east Bengaluru routes ──────────────────────────────────
+  {
+    id: "314", label: "314", from: "Whitefield", to: "Hennur Cross",
+    color: "#10b981", fare: 26, freqMin: 22,
+    stops: [
+      { name: "Whitefield",      lat: 12.9698, lng: 77.7499 },
+      { name: "ITPL",            lat: 12.9811, lng: 77.7283 },
+      { name: "Marathahalli",    lat: 12.9591, lng: 77.6971 },
+      { name: "KR Puram",        lat: 12.9940, lng: 77.6967 },
+      { name: "Old Madras Road", lat: 13.0032, lng: 77.6780 },
+      { name: "Horamavu",        lat: 13.0196, lng: 77.6683 },
+      { name: "Kalyan Nagar",    lat: 13.0239, lng: 77.6455 },
+      { name: "Hennur Cross",    lat: 13.0259, lng: 77.6390 },
+    ],
+  },
+  {
+    id: "216", label: "216", from: "Whitefield", to: "Hebbal",
+    color: "#06b6d4", fare: 28, freqMin: 20,
+    stops: [
+      { name: "Whitefield",      lat: 12.9698, lng: 77.7499 },
+      { name: "ITPL",            lat: 12.9811, lng: 77.7283 },
+      { name: "Marathahalli",    lat: 12.9591, lng: 77.6971 },
+      { name: "KR Puram",        lat: 12.9940, lng: 77.6967 },
+      { name: "Horamavu",        lat: 13.0196, lng: 77.6683 },
+      { name: "Thanisandra",     lat: 13.0505, lng: 77.6560 },
+      { name: "Hebbal",          lat: 13.0358, lng: 77.5970 },
+    ],
+  },
+  {
+    id: "218", label: "218", from: "Whitefield", to: "Majestic",
+    color: "#f43f5e", fare: 35, freqMin: 18,
+    stops: [
+      { name: "Whitefield",      lat: 12.9698, lng: 77.7499 },
+      { name: "Marathahalli",    lat: 12.9591, lng: 77.6971 },
+      { name: "Koramangala",     lat: 12.9352, lng: 77.6245 },
+      { name: "Jayanagar",       lat: 12.9276, lng: 77.5829 },
+      { name: "Shivajinagar",    lat: 12.9875, lng: 77.5986 },
+      { name: "Majestic",        lat: 12.9767, lng: 77.5713 },
+    ],
+  },
+  {
+    id: "356C", label: "356C", from: "KR Puram", to: "Majestic",
+    color: "#84cc16", fare: 22, freqMin: 15,
+    stops: [
+      { name: "KR Puram",        lat: 12.9940, lng: 77.6967 },
+      { name: "Old Madras Road", lat: 13.0032, lng: 77.6780 },
+      { name: "Indiranagar",     lat: 12.9784, lng: 77.6408 },
+      { name: "MG Road",         lat: 12.9758, lng: 77.6096 },
+      { name: "Shivajinagar",    lat: 12.9875, lng: 77.5986 },
+      { name: "Majestic",        lat: 12.9767, lng: 77.5713 },
+    ],
+  },
+  {
+    id: "210", label: "210", from: "Electronic City", to: "Shivajinagar",
+    color: "#a78bfa", fare: 32, freqMin: 25,
+    stops: [
+      { name: "Electronic City", lat: 12.8451, lng: 77.6602 },
+      { name: "HSR Layout",      lat: 12.9116, lng: 77.6389 },
+      { name: "Koramangala",     lat: 12.9352, lng: 77.6245 },
+      { name: "Indiranagar",     lat: 12.9784, lng: 77.6408 },
+      { name: "Shivajinagar",    lat: 12.9875, lng: 77.5986 },
+    ],
+  },
+  {
+    id: "417", label: "417", from: "Yelahanka", to: "KR Puram",
+    color: "#fb923c", fare: 30, freqMin: 30,
+    stops: [
+      { name: "Yelahanka",       lat: 13.1006, lng: 77.5944 },
+      { name: "Hebbal",          lat: 13.0358, lng: 77.5970 },
+      { name: "Thanisandra",     lat: 13.0505, lng: 77.6560 },
+      { name: "Kothanur",        lat: 13.0576, lng: 77.6780 },
+      { name: "Byrathi",         lat: 13.0648, lng: 77.7096 },
+      { name: "KR Puram",        lat: 12.9940, lng: 77.6967 },
+    ],
+  },
 ];
 
 // Metro stations for the Purple line
