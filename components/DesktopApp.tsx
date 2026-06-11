@@ -170,17 +170,20 @@ export default function DesktopApp() {
       getTransitRoute(from.lat, from.lng, r.lat, r.lng),
     ]);
 
-    if (walkResult && walkResult.distanceM < 10000) {
-      setWalkRoute(walkResult);
-      setWalkInfo(fmtWalk(walkResult.durationSec, walkResult.distanceM));
-    } else if (walkResult) {
-      setWalkInfo("Too far to walk · take transit");
-    }
-
-    if (transitResult) setQueryRoute(transitResult);
-
     const matches = findMatchingRoutes(from.lat, from.lng, r.lat, r.lng);
     setMatchedRoutes(matches);
+
+    if (walkResult && walkResult.distanceM < 10000) {
+      // Walkable — show walk strip regardless
+      setWalkRoute(walkResult);
+      setWalkInfo(fmtWalk(walkResult.durationSec, walkResult.distanceM));
+    } else if (walkResult && matches.length === 0) {
+      // Too far AND no transit found — tell the user
+      setWalkInfo("Too far to walk · no routes found nearby");
+    }
+    // If too far but transit routes exist, the left panel already shows them — no strip needed
+
+    if (transitResult) setQueryRoute(transitResult);
     setRouteSearching(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, selectedOrigin]);
