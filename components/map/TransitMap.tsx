@@ -152,8 +152,8 @@ export default function TransitMap({
     >
       <NavigationControl position="bottom-right" showCompass={false} />
 
-      {/* Static route corridor — hidden when a user query route is active */}
-      {!queryRoute && (
+      {/* Static route corridor — hidden whenever a destination is selected (with or without a matched route) */}
+      {!queryRoute && !destPin && (
         <Source id="route" type="geojson" data={routeGeoJSON}>
           <Layer {...routeCasingLayer} />
           <Layer {...routeLayer} />
